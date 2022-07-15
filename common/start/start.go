@@ -6,25 +6,22 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/TeamEvie/Fetchboat/common/commands"
+	"github.com/TeamEvie/Fetchboat/commands"
 	"github.com/bwmarrin/discordgo"
 )
 
 func Start() {
 
-	discord, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
+	s, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 
 	if err != nil {
 		fmt.Println("Failed to create a session!", err)
 		return
 	}
 
-	discord.AddHandler(messageCreate)
-	discord.AddHandler(commands.UserInfoHandler)
+	commands.Inject(s)
 
-	discord.Identify.Intents = discordgo.IntentsGuildMessages
-
-	err = discord.Open()
+	err = s.Open()
 	if err != nil {
 		fmt.Println("Failed to connect to the gateway!", err)
 		return
@@ -35,15 +32,5 @@ func Start() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGTERM)
 	<-sc
 
-	discord.Close()
-}
-
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	if m.Content == s.State.User.Mention() {
-		s.ChannelMessageSend(m.ChannelID, "alive!")
-	}
+	s.Close()
 }
